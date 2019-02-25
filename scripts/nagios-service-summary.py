@@ -5,6 +5,11 @@ import sys
 import nagiosplugin
 import argparse
 import requests
+try:
+   import requests_cache
+   requests_cache.install_cache('nagios_status')
+except ImportError as ex:
+   pass
 
 summary = dict()
 
