@@ -6,7 +6,6 @@ import nagiosplugin
 import argparse
 import requests
 
-svc = sys.argv.pop()
 summary = dict()
 
 class SetEncoder(json.JSONEncoder):
@@ -29,7 +28,7 @@ class ServiceSummary(nagiosplugin.Resource):
       self.summary = dict()
       for status_url in self.status_urls:
          r = requests.get(status_url)
-         if r.ok: 
+         if r.status_code == 200: 
             status = r.json()
             for host,status in status['content'].items():
                if self.service_name in status['services']:
@@ -37,15 +36,15 @@ class ServiceSummary(nagiosplugin.Resource):
                   self.summary.setdefault(current_state,set())
                   self.summary[current_state].add(host)
       for state,hosts in self.summary.items():
-         yield nagiosplugin.Metric('Number of {} hosts for service {}'.format(state,self.service_name),len(hosts),context=self.service_name)
+         yield nagiosplugin.Metric('#{} for {}'.format(state,self.service_name),len(hosts),context=self.service_name)
 
 @nagiosplugin.guarded
 def main():
    argp = argparse.ArgumentParser(description=__doc__)
    argp.add_argument('-w', '--warning', metavar='RANGE', default='', help='return warning if number of failed hosts is outside RANGE')
    argp.add_argument('-c', '--critical', metavar='RANGE', default='', help='return critical if number of failed hosts is outside RANGE')
-   argp.add_argument('-s', '--service', metavar='SERVICE NAME', default='Uptime', help='the service to summarize')
-   argp.add_argument('-S', '--status', metavar='JSON STATUS FILE', type=str, action='append', help='<Required> status source')
+   argp.add_argument('-n', '--service', metavar='NAME', default='Uptime', help='the service to summarize')
+   argp.add_argument('-s', '--status', metavar='URI', type=str, action='append', help='<Required> status source')
    argp.add_argument('-v', '--verbose', action='count', default=0, help='increase output verbosity (use up to 3 times)')
    args = argp.parse_args()
    check = nagiosplugin.Check(ServiceSummary(args.service,args.status),
