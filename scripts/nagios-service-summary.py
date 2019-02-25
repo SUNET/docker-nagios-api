@@ -24,7 +24,7 @@ _states = {'0': nagiosplugin.state.Ok,
            '2': nagiosplugin.state.Critical,
            '3': nagiosplugin.state.Unknown}
 
-class ServiceSummary(nagiosplugin.Resource):
+class ServiceSummaryCheck(nagiosplugin.Resource):
    def __init__(self, service_name, status_urls):
       self.service_name = service_name
       self.status_urls = status_urls
@@ -43,6 +43,10 @@ class ServiceSummary(nagiosplugin.Resource):
       for state,hosts in self.summary.items():
          yield nagiosplugin.Metric('#{} for {}'.format(state,self.service_name),len(hosts),context=self.service_name)
 
+class ServiceSummary(nagiosplugin.Summary):
+   def __init__(self, service_name):
+      self.service_name = service_name
+
 @nagiosplugin.guarded
 def main():
    argp = argparse.ArgumentParser(description=__doc__)
@@ -52,8 +56,10 @@ def main():
    argp.add_argument('-s', '--status', metavar='URI', type=str, action='append', help='<Required> status source')
    argp.add_argument('-v', '--verbose', action='count', default=0, help='increase output verbosity (use up to 3 times)')
    args = argp.parse_args()
-   check = nagiosplugin.Check(ServiceSummary(args.service,args.status),
+   check = nagiosplugin.Check(ServiceSummaryCheck(args.service,args.status),
+                              ServiceSummary(args.service),
                               nagiosplugin.ScalarContext(args.service, args.warning, args.critical))
+   check.name = "{} summary".format(args.service)
    check.main(verbose=args.verbose)
 
 if __name__ == '__main__':
